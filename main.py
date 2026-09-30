@@ -1,4 +1,5 @@
 import numpy as np
+import json
 from datetime import datetime
 from collections import defaultdict
 
@@ -174,11 +175,20 @@ def compute_ukpi(raw: dict) -> dict:
         "component_scores": scores,
     }
 
+def write_json_output(result: dict) -> None:
+    output = {
+        "ukpi": round(result["ukpi"], 3),
+        "reference_month": result["reference_month"].strftime("%Y-%m"),
+        "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "component_scores": {k: round(v, 3) for k, v in result["component_scores"].items()},
+    }
+    with open("data/ukpi_output.json", "w") as f:
+        json.dump(output, f, indent=2)
 
 if __name__ == "__main__":
     raw = gather_raw_data()
     result = compute_ukpi(raw)
-
+    write_json_output(result)
     print(f"\n{'='*50}")
     print(f"UK PANIC INDEX (UKPI): {result['ukpi']:+.2f}")
     print(f"Reference month (Group A): {result['reference_month'].strftime('%Y-%m')}")

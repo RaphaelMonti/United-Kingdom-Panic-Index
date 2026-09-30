@@ -64,17 +64,18 @@ def find_reference_month(all_series: dict[str, list[tuple[datetime, float]]]) ->
 
 
 def value_as_of(series: list[tuple[datetime, float]], reference_date: datetime) -> float:
+    """Most recent value at or before reference_date (hold-flat for slower-updating series)."""
+    eligible = [v for d, v in series if d <= reference_date]
+    if not eligible:
+        raise ValueError(f"No data available as of {reference_date}")
+    return eligible[-1]
+def value_as_of(series: list[tuple[datetime, float]], reference_date: datetime) -> float:
     """Most recent value at or before reference_date. Falls back to the earliest
-    available value (with a warning) if the series starts later than reference_date."""
+    available value (with a warning) if the series starts later than reference_date —
+    this happens for brand-new series still accumulating history."""
     eligible = [v for d, v in series if d <= reference_date]
     if eligible:
         return eligible[-1]
-    if series:
-        earliest_date, earliest_value = series[0]
-        print(f"WARNING: no data at or before {reference_date.date()} - using earliest available value from {earliest_date.date()} instead.")
-        return earliest_value
-    raise ValueError("No data available at all for this series")
-
 def history_as_of(series: list[tuple[datetime, float]], reference_date: datetime) -> list[float]:
     """Full value history up to reference_date. Falls back to the full series
     if nothing qualifies (brand-new series that starts after reference_date)."""
@@ -82,6 +83,14 @@ def history_as_of(series: list[tuple[datetime, float]], reference_date: datetime
     if eligible:
         return eligible
     if series:
-        print(f"WARNING: no history at or before {reference_date.date()} - using full available series instead.")
+        print(f"WARNING: no history at or before {reference_date.date()} — using full available series instead.")
         return [v for _, v in series]
+    raise ValueError("No data available at all for this series")
+
+    if series:
+        earliest_date, earliest_value = series[0]
+        print(f"⚠️  WARNING: no data at or before {reference_date.date()} — "
+              f"using earliest available value from {earliest_date.date()} instead.")
+        return earliest_value
+
     raise ValueError("No data available at all for this series")
