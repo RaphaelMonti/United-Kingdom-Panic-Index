@@ -13,10 +13,8 @@ from manual_data import get_gfk_cci, get_lloyds_business_barometer, get_crime_ra
 from utils import trailing_zscore, find_reference_month, value_as_of, history_as_of
 
 
-# ============================================================
-# STEP 1: Derived series (built before gathering, since they
+# Derived series (built before gathering, since they
 # need raw daily data transformed into monthly readings first)
-# ============================================================
 
 def build_gbp_fx_volatility_series(fx_series: list[tuple]) -> list[tuple]:
     """Build a monthly volatility series from full daily FX history."""
@@ -34,9 +32,7 @@ def build_gbp_fx_volatility_series(fx_series: list[tuple]) -> list[tuple]:
     return monthly_volatility
 
 
-# ============================================================
-# STEP 2: Pull raw data for every indicator (dated tuples)
-# ============================================================
+# Pull raw data for every indicator (dated tuples)
 
 def gather_raw_data() -> dict:
     js = get_job_security_inputs()
@@ -59,9 +55,7 @@ def gather_raw_data() -> dict:
     }
 
 
-# ============================================================
-# STEP 3: Group A / Group B split + reference month alignment
-# ============================================================
+# Group A / Group B split + reference month alignment
 
 GROUP_B_KEYS = {"gdp_growth", "crime_rate", "wellbeing"}
 
@@ -76,9 +70,7 @@ def align_group_a(raw: dict) -> tuple[dict, datetime]:
     return aligned, reference_month
 
 
-# ============================================================
-# STEP 4: Direction fixing + z-scoring
-# ============================================================
+# Direction fixing + z-scoring
 # "direct" = higher raw value is worse (bad = high)
 # "invert" = higher raw value is better (bad = low)
 
@@ -109,9 +101,7 @@ def zscore_and_orient(key: str, values: list[float]) -> float:
     return z
 
 
-# ============================================================
-# STEP 5: Job Security Proxy (recombines redundancy + vacancy_ratio)
-# ============================================================
+# Job Security Proxy (recombines redundancy + vacancy_ratio)
 
 def compute_job_security(raw: dict, reference_month: datetime) -> float:
     """Combine redundancy + vacancy_ratio into one Job Security Proxy score."""
@@ -123,10 +113,7 @@ def compute_job_security(raw: dict, reference_month: datetime) -> float:
 
     return (z_redundancy + z_vacancy) / 2
 
-
-# ============================================================
-# STEP 6: Composite Sentiment (blends CCI + Business Barometer + EPU)
-# ============================================================
+# Composite Sentiment (blends CCI + Business Barometer + EPU)
 
 def compute_composite_sentiment(raw: dict, reference_month: datetime) -> float:
     cci_history = history_as_of(raw["cci"], reference_month)
@@ -140,9 +127,7 @@ def compute_composite_sentiment(raw: dict, reference_month: datetime) -> float:
     return (z_cci + z_barometer + z_epu) / 3
 
 
-# ============================================================
-# STEP 7: Pillar weights and final aggregation
-# ============================================================
+# Pillar weights and final aggregation
 
 PILLAR_WEIGHTS = {
     "cpi": 20/3, "gdp_growth": 20/3, "public_debt": 20/3,                          # Pillar 1: 20%
