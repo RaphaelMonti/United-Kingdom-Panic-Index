@@ -2,7 +2,7 @@ name: Update UKPI site
 
 on:
   schedule:
-    - cron: '0 6 1,15 * *'   # 1st and 15th of every month at 06:00 UTC
+    - cron: '0 6 1,15 * *'
   workflow_dispatch: {}
 
 permissions:
@@ -14,9 +14,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          persist-credentials: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -38,7 +35,10 @@ jobs:
         run: |
           git config user.name "UKPI bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.html data/
+
+          [ -f index.html ] && git add index.html
+          git add data/ 2>/dev/null || true
+
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
