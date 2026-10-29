@@ -1,6 +1,7 @@
 import requests
 import os
 import csv
+import calendar
 import numpy as np
 from datetime import datetime
 
@@ -82,14 +83,53 @@ def append_volatility_reading(date: datetime, volatility: float) -> list[tuple]:
 
 def get_ftse_volatility_series() -> list[tuple]:
     """
-    Full pipeline: fetch latest prices, compute this month's volatility,
-    persist it, and return the accumulated history of monthly readings.
+    Return historical monthly volatility. Append a reading only when the
+    fetched daily prices cover a completed calendar month sufficiently.
     """
-    prices = get_ftse_prices()
-    current_volatility = compute_current_volatility(prices)
+    prices = sorted(get_ftse_prices(), key=lambda x: x[0])
     today = datetime.now()
-    history = append_volatility_reading(today, current_volatility)
-    return history
+    current_month = datetime(today.year, today.month, 1)
+
+    if current_month.month == 1:
+        target_year, target_month = current_month.year - 1, 12
+    else:
+        target_year, target_month = current_month.year, current_month.month - 1
+
+    target_prices = [
+        (date, price) for date, price in prices
+        if date.year == target_year and date.month == target_month
+    ]
+
+    if len(target_prices) < 15:
+        print(
+            f"Daily prices do not sufficiently cover {target_year}-{target_month:02d}; "
+            "historical volatility left unchanged."
+        )
+        return load_volatility_history()
+
+    if target_prices[0][0].day > 7 or target_prices[-1][0].day < 25:
+        print(
+            f"Daily prices do not sufficiently cover {target_year}-{target_month:02d}; "
+            "historical volatility left unchanged."
+        )
+        return load_volatility_history()
+
+    prior_prices = [
+        (date, price) for date, price in prices
+        if (date.year, date.month) < (target_year, target_month)
+    ]
+    calculation_prices = (
+        ([prior_prices[-1]] if prior_prices else []) + target_prices
+    )
+    volatility = compute_current_volatility(calculation_prices)
+    month_end = datetime(
+        target_year,
+        target_month,
+        calendar.monthrange(target_year, target_month)[1],
+    )
+
+    append_volatility_reading(month_end, volatility)
+    return load_volatility_history()
 
 
 if __name__ == "__main__":

@@ -31,7 +31,7 @@ def load_manual_series(filename: str, max_age_days: int = 120, label: str = "") 
 
 
 def get_gfk_cci() -> list[tuple]:
-    return load_manual_series("gfk_cci.csv", max_age_days=60, label="GfK CCI")
+    return load_manual_series("gfk_cci_monthly_review.csv", max_age_days=60, label="GfK CCI")
 
 def get_lloyds_business_barometer() -> list[tuple]:
     return load_manual_series("lloyds_business_barometer.csv", max_age_days=60, label="Lloyds Business Barometer")

@@ -1,84 +1,87 @@
-import numpy as np
 import json
-import os
-from datetime import datetime
 from collections import defaultdict
+from datetime import datetime
+
+import numpy as np
 
 from ONS_API import (
     get_cpi, get_gdp_growth, get_public_debt_pct_gdp,
-    get_unemployment_rate, get_job_security_inputs, get_real_purchasing_power
+    get_unemployment_rate, get_job_security_inputs, get_real_purchasing_power,
 )
 from BOE_API import get_bank_rate, get_gbp_exchange_rate
 from FRED_API import get_epu
 from FTSE_API import get_ftse_volatility_series
-from manual_data import get_gfk_cci, get_lloyds_business_barometer, get_crime_rate, get_wellbeing
-from utils import trailing_zscore, find_reference_month, value_as_of, history_as_of
+from manual_data import (
+    get_gfk_cci, get_lloyds_business_barometer, )
+from utils import trailing_zscore, find_reference_month
+
+Series = list[tuple[datetime, float]]
+
+UKPI_SCALE = 25  # presentation multiplier only, not a statistical claim
 
 
-# Derived series
+# ------------------------------------------------------------
+# Frequency handling: every series is monthly or slower before scoring
+# ------------------------------------------------------------
 
-def build_gbp_fx_volatility_series(fx_series: list[tuple]) -> list[tuple]:
-    """Build a monthly volatility series from full daily FX history."""
+def monthly_last(series: Series) -> Series:
+    """Collapse a daily series to its last observation in each calendar month."""
+    by_month = {}
+    for date, value in sorted(series, key=lambda x: x[0]):
+        by_month[(date.year, date.month)] = (date, value)
+    return [by_month[k] for k in sorted(by_month)]
+
+
+def build_gbp_fx_volatility_series(fx_series: Series) -> Series:
+    """Monthly volatility = std dev of daily returns within each calendar month."""
     by_month = defaultdict(list)
-    for date, price in fx_series:
+    for date, price in sorted(fx_series, key=lambda x: x[0]):
         by_month[(date.year, date.month)].append(price)
 
-    monthly_volatility = []
+    out = []
     for (year, month), prices in sorted(by_month.items()):
-        if len(prices) < 5:  
+        if len(prices) < 5:
             continue
         returns = [(prices[i] - prices[i - 1]) / prices[i - 1] for i in range(1, len(prices))]
-        monthly_volatility.append((datetime(year, month, 1), float(np.std(returns))))
+        out.append((datetime(year, month, 1), float(np.std(returns))))
+    return out
 
-    return monthly_volatility
 
+def yoy_growth(series: Series) -> Series:
+    """Year-on-year % change from a monthly level series."""
+    by_date = dict(series)
+    out = []
+    for date, value in sorted(series, key=lambda x: x[0]):
+        prior = by_date.get(date.replace(year=date.year - 1))
+        if prior:
+            out.append((date, (value / prior - 1) * 100))
+    return out
 
-# Data gathering
 
 def gather_raw_data() -> dict:
     js = get_job_security_inputs()
     return {
         "cpi": get_cpi(),
-        "gdp_growth": get_gdp_growth(),                    # Group B
+        "gdp_growth": get_gdp_growth(),
         "public_debt": get_public_debt_pct_gdp(),
-        "bank_rate": get_bank_rate(),
+        "bank_rate": monthly_last(get_bank_rate()),
         "gbp_fx_volatility": build_gbp_fx_volatility_series(get_gbp_exchange_rate()),
         "unemployment": get_unemployment_rate(),
         "redundancy": js["redundancy"],
         "vacancy_ratio": js["vacancy_ratio"],
         "purchasing_power": get_real_purchasing_power(),
         "epu": get_epu(),
-        "ftse_volatility": get_ftse_volatility_series(),   
+        "ftse_volatility": get_ftse_volatility_series(),
         "cci": get_gfk_cci(),
         "business_barometer": get_lloyds_business_barometer(),
-        "crime_rate": get_crime_rate(),                    # Group B
-        "wellbeing": get_wellbeing(),                      # Group B
     }
 
 
-# Alignment (Group A vs Group B)
+# ------------------------------------------------------------
+# Direction, grouping, weights
+# ------------------------------------------------------------
 
-GROUP_B_KEYS = {"gdp_growth", "crime_rate", "wellbeing"}
-
-
-def align_group_a(raw: dict) -> tuple[dict, datetime]:
-    """Align all Group A series to the oldest available 'latest date' among them."""
-    group_a = {
-        k: v for k, v in raw.items()
-        if k not in GROUP_B_KEYS and k not in ("redundancy", "vacancy_ratio")
-    }
-    reference_month = find_reference_month(group_a)
-
-    aligned = {}
-    for key, series in group_a.items():
-        aligned[key] = value_as_of(series, reference_month)
-    return aligned, reference_month
-
-
-# Direction + z-scoring
-
-# "direct"  = higher raw value is worse  → keep sign
-# "invert"  = higher raw value is better → flip sign
+# "direct" = higher raw value is worse; "invert" = higher raw value is better
 INDICATOR_DIRECTIONS = {
     "cpi": "direct",
     "gdp_growth": "invert",
@@ -93,115 +96,114 @@ INDICATOR_DIRECTIONS = {
     "ftse_volatility": "direct",
     "cci": "invert",
     "business_barometer": "invert",
-    "crime_rate": "direct",
-    "wellbeing": "direct",
 }
 
+GROUP_B = {"gdp_growth"}  # slow series, scored at their own latest date
 
-def zscore_and_orient(key: str, values: list[float]) -> float:
-    """Z-score a series and flip sign so higher always = more panic."""
-    z = trailing_zscore(values)
-    if INDICATOR_DIRECTIONS[key] == "invert":
-        z = -z
-    return z
+SIMPLE_GROUP_A = [
+    "cpi", "public_debt", "bank_rate", "ftse_volatility",
+    "gbp_fx_volatility", "unemployment", "purchasing_power",
+]
 
+# (name, component series, minimum components that must be scorable)
+COMPOSITES = [
+    ("job_security", ["redundancy", "vacancy_ratio"], 2),
+    ("composite_sentiment", ["cci", "business_barometer", "epu"], 2),
+]
 
-# Composite indicators
-
-def compute_job_security(raw: dict, reference_month: datetime) -> float:
-    """Combine redundancy + vacancy_ratio into one Job Security Proxy score."""
-    redundancy_history = history_as_of(raw["redundancy"], reference_month)
-    vacancy_history = history_as_of(raw["vacancy_ratio"], reference_month)
-
-    z_redundancy = zscore_and_orient("redundancy", redundancy_history)
-    z_vacancy = zscore_and_orient("vacancy_ratio", vacancy_history)
-
-    return (z_redundancy + z_vacancy) / 2
-
-
-def compute_composite_sentiment(raw: dict, reference_month: datetime) -> float:
-    """Blend CCI + Business Barometer + EPU."""
-    cci_history = history_as_of(raw["cci"], reference_month)
-    barometer_history = history_as_of(raw["business_barometer"], reference_month)
-    epu_history = history_as_of(raw["epu"], reference_month)
-
-    z_cci = zscore_and_orient("cci", cci_history)
-    z_barometer = zscore_and_orient("business_barometer", barometer_history)
-    z_epu = zscore_and_orient("epu", epu_history)
-
-    return (z_cci + z_barometer + z_epu) / 3
-
-
-# Final UKPI calculation
-
-PILLAR_WEIGHTS = {
-    # Pillar 1 – Macro & Fiscal (20%)
-    "cpi": 20 / 3,
-    "gdp_growth": 20 / 3,
-    "public_debt": 20 / 3,
-    # Pillar 2 – Monetary & Markets (20%)
-    "bank_rate": 20 / 3,
-    "ftse_volatility": 20 / 3,
-    "gbp_fx_volatility": 20 / 3,
-    # Pillar 3 – Labour (15%)
-    "unemployment": 7.5,
-    "job_security": 7.5,
-    # Pillar 4 – Confidence & Sentiment (25%)
+# percent weights; renormalised over whatever can actually be scored
+WEIGHTS = {
+    "cpi": 20 / 3, "gdp_growth": 20 / 3, "public_debt": 20 / 3,
+    "bank_rate": 20 / 3, "ftse_volatility": 20 / 3, "gbp_fx_volatility": 20 / 3,
+    "unemployment": 7.5, "job_security": 7.5,
     "composite_sentiment": 25,
-    # Pillar 5 – Social & Wellbeing (20%)
-    "crime_rate": 20 / 3,
-    "purchasing_power": 20 / 3,
-    "wellbeing": 20 / 3,
-}
+    "purchasing_power": 20 / 3, }
 
 
-def compute_ukpi(raw: dict) -> dict:
-    aligned, reference_month = align_group_a(raw)
+def oriented_z(key: str, series: Series, as_of: datetime) -> float:
+    min_observations = 16 if key == "gdp_growth" else 24
+    z = trailing_zscore(
+        series,
+        as_of,
+        min_observations=min_observations,
+    )
+    return -z if INDICATOR_DIRECTIONS[key] == "invert" else z
 
-    # Simple Group A indicators
-    simple_keys = [
-        "cpi", "public_debt", "bank_rate", "ftse_volatility",
-        "gbp_fx_volatility", "unemployment", "purchasing_power"
-    ]
 
-    scores = {}
-    for key in simple_keys:
-        history = history_as_of(raw[key], reference_month)
-        scores[key] = zscore_and_orient(key, history)
+def blend(raw: dict, keys: list, as_of: datetime, min_parts: int):
+    scores, problems = {}, {}
+    for key in keys:
+        try:
+            scores[key] = oriented_z(key, raw[key], as_of)
+        except ValueError as exc:
+            problems[key] = str(exc)
+    if len(scores) < min_parts:
+        raise ValueError(f"only {len(scores)}/{len(keys)} components scorable: {problems}")
+    return sum(scores.values()) / len(scores), sorted(scores)
 
-    # Combined indicators
-    scores["job_security"] = compute_job_security(raw, reference_month)
-    scores["composite_sentiment"] = compute_composite_sentiment(raw, reference_month)
 
-    # Group B – use their own latest history (not forced to reference month)
-    for key in ["gdp_growth", "crime_rate", "wellbeing"]:
-        full_history = [v for _, v in raw[key]]
-        scores[key] = zscore_and_orient(key, full_history)
+# ------------------------------------------------------------
+# Aggregation
+# ------------------------------------------------------------
 
-    # Weighted average
-    weighted_sum = sum(scores[k] * (PILLAR_WEIGHTS[k] / 100) for k in scores)
+def compute_ukpi(raw: dict, as_of: datetime = None) -> dict:
+    """as_of=None -> live mode (reference month found automatically).
+    as_of=<date> -> score everything using only data on or before that date."""
+    group_a = {k: v for k, v in raw.items() if k not in GROUP_B}
+    reference_month = as_of or find_reference_month(group_a)
+    group_b_cutoff = as_of or datetime.now()
 
-    # Scale so that ~±25 ≈ 1 standard deviation of the composite
-    UKPI_SCALE = 25
-    ukpi_value = weighted_sum * UKPI_SCALE
+    scores, excluded, components_used = {}, {}, {}
+
+    for key in SIMPLE_GROUP_A:
+        try:
+            scores[key] = oriented_z(key, raw[key], reference_month)
+        except ValueError as exc:
+            excluded[key] = str(exc)
+
+    for key in sorted(GROUP_B):
+        try:
+            scores[key] = oriented_z(key, raw[key], group_b_cutoff)
+        except ValueError as exc:
+            excluded[key] = str(exc)
+
+    for name, parts, min_parts in COMPOSITES:
+        try:
+            scores[name], components_used[name] = blend(raw, parts, reference_month, min_parts)
+        except ValueError as exc:
+            excluded[name] = str(exc)
+
+    if not scores:
+        raise ValueError("No indicator could be scored")
+
+    # Renormalise weights across indicators that can be scored.
+    # Report original-weight coverage separately so missing data stays visible.
+    total_weight = sum(WEIGHTS.values())
+    weight_coverage = 100 * sum(WEIGHTS[k] for k in scores) / total_weight
+    weights_used = {k: WEIGHTS[k] / sum(WEIGHTS[j] for j in scores) for k in scores}
+    weighted_sum = sum(scores[k] * weights_used[k] for k in scores)
 
     return {
-        "ukpi": ukpi_value,
+        "ukpi": weighted_sum * UKPI_SCALE,
         "reference_month": reference_month,
         "component_scores": scores,
+        "weights_used": weights_used,
+        "weight_coverage_pct": weight_coverage,
+        "components_used": components_used,
+        "excluded": excluded,
     }
 
 
 def write_json_output(result: dict) -> None:
-    os.makedirs("data", exist_ok=True)
-
     output = {
         "ukpi": round(result["ukpi"], 3),
         "reference_month": result["reference_month"].strftime("%Y-%m"),
         "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
         "component_scores": {k: round(v, 3) for k, v in result["component_scores"].items()},
+        "weights_used": {k: round(v, 4) for k, v in result["weights_used"].items()},
+        "components_used": result["components_used"],
+        "excluded": result["excluded"],
     }
-
     with open("data/ukpi_output.json", "w") as f:
         json.dump(output, f, indent=2)
 
@@ -214,7 +216,12 @@ if __name__ == "__main__":
     print(f"\n{'=' * 50}")
     print(f"UK PANIC INDEX (UKPI): {result['ukpi']:+.2f}")
     print(f"Reference month (Group A): {result['reference_month'].strftime('%Y-%m')}")
+    print(f"Scored {len(result['component_scores'])} indicators")
     print(f"{'=' * 50}\n")
     print("Component z-scores (higher = more panic):")
-    for key, score in sorted(result["component_scores"].items(), key=lambda x: -x[1]):
-        print(f"  {key:25s}: {score:+.3f}")
+    for key, score in result["component_scores"].items():
+        print(f"  {key}: {score:+.3f}  (weight {result['weights_used'][key]:.1%})")
+    if result["excluded"]:
+        print("\nExcluded (insufficient history):")
+        for key, reason in result["excluded"].items():
+            print(f"  {key}: {reason[:90]}")

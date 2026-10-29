@@ -60,7 +60,7 @@ def get_job_security_inputs() -> dict:
 
 
 def get_real_purchasing_power() -> list[tuple]:
-    return _dated_values("/employmentandlabourmarket/peopleinwork/earningsandworkinghours/timeseries/a3wx/emp", max_age_days=150, label="Real Purchasing Power")
+    return _dated_values("/employmentandlabourmarket/peopleinwork/earningsandworkinghours/timeseries/a3wv/emp", max_age_days=150, label="Real Pay Growth")
 
 
 if __name__ == "__main__":
