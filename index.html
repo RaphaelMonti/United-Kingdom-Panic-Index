@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,8 +7,8 @@
 <title>UK Panic Index</title>
 <style>
 :root {
-  --ink:#252a30;
-  --muted:#68727d;
+  --ink:#000000;
+  --muted:#000000;
   --line:#dce1e5;
   --blue:#477db8;
   --red:#bd4a45;
@@ -63,7 +62,7 @@ p { margin:7px 0 12px; }
 .neutral { color:var(--ink); }
 .columns { display:grid; grid-template-columns:minmax(0,1.4fr) minmax(300px,1fr); gap:30px; align-items:start; }
 table { width:100%; border-collapse:collapse; font-size:13px; }
-th { text-align:left; color:#5d6670; background:var(--light); font-size:12px; font-weight:normal; }
+th { text-align:left; color:#000000; background:var(--light); font-size:12px; font-weight:normal; }
 th,td { padding:10px 8px; border-bottom:1px solid #e8ebee; }
 tr:hover td { background:#fafbfc; }
 .num { text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
@@ -139,7 +138,7 @@ footer a { color:var(--blue); }
           <tr><td>Real pay growth</td><td><div class="bar-track"><span class="bar red" style="left:50%;width:9.1%"></span></div></td><td class="num positive">+0.362</td><td class="num">7.69%</td></tr>
           <tr><td>GDP growth</td><td><div class="bar-track"><span class="bar red" style="left:50%;width:6.0%"></span></div></td><td class="num positive">+0.238</td><td class="num">7.69%</td></tr>
           <tr><td>Job security composite</td><td><div class="bar-track"><span class="bar red" style="left:50%;width:21.3%"></span></div></td><td class="num positive">+0.851</td><td class="num">8.65%</td></tr>
-          <tr><td>Confidence and uncertainty</td><td><div class="bar-track"><span class="bar green" style="right:50%;width:6.2%"></span></div></td><td class="num negative">−0.248</td><td class="num">28.85%</td></tr>
+          <tr><td>Confidence and uncertainty</td><td><div class="bar-track"><span class="bar green" style="right:50%;width:6.2%"></span></div></td><td class="num negative">−0.248</td><td class="num">7.69%</td></tr>
         </tbody>
       </table>
     </section>
@@ -153,21 +152,21 @@ footer a { color:var(--blue); }
       <p>A score of +1 means one standard deviation above the historical mean; −1 means one below. Insufficient history or a zero standard deviation can prevent a component from being scored.</p>
 
       <h3>2. Direction adjustment</h3>
-      <p>Indicator directions are adjusted so higher component scores are intended to represent greater economic stress. For example, higher unemployment and volatility increase stress, while stronger GDP growth and real pay growth are inverted. These are modelling assumptions, not universal economic laws.</p>
+      <p>Indicator directions are adjusted so higher component scores are intended to represent greater economic stress. For example, higher unemployment and volatility increase stress, while stronger growth and confidence reduce it.</p>
 
       <h3>3. Composite indicators</h3>
-      <p><strong>Job security</strong> combines redundancy and vacancy-related measures. <strong>Confidence and uncertainty</strong> combines consumer confidence, the Lloyds Business Barometer and UK Economic Policy Uncertainty. The latter composite requires at least two available inputs.</p>
+      <p><strong>Job security</strong> combines redundancy and vacancy-related measures. <strong>Confidence and uncertainty</strong> combines consumer confidence, the Lloyds Business Barometer and UK economic policy uncertainty.</p>
 
       <h3>4. Weights and aggregation</h3>
-      <p>Component scores are combined using configured weights. When components are unavailable, weights are renormalised across those that can be scored. The effective weights shown in the table sum to approximately 100%.</p>
+      <p>Component scores are combined using configured weights. When components are unavailable, weights are renormalised across those that can be scored. The effective weights shown in the table sum to 100%.</p>
       <div class="formula">UKPI = weighted average of component z-scores × 25</div>
       <p>The factor of 25 scales the result for presentation. The index is not a percentage or probability, and its magnitude does not directly represent the probability of a particular economic outcome.</p>
 
       <h3>5. Reporting periods and data lags</h3>
-      <p>The intended live reference month is the last completed calendar month. Some source series are released quarterly or with delays, so an observation may describe an earlier period. Publication date and observation period are not necessarily the same.</p>
+      <p>The intended live reference month is the last completed calendar month. Some source series are released quarterly or with delays, so an observation may describe an earlier period. Publication lags can therefore leave the latest reading provisional.</p>
 
       <h3>6. Limitations</h3>
-      <p>The index measures conditions relative to recent historical baselines, not absolute economic health. Results can be affected by data revisions, missing observations, overlapping indicators, proxy choices and component weights. The score should be interpreted alongside the individual readings and source data.</p>
+      <p>The index measures conditions relative to recent historical baselines, not absolute economic health. Results can be affected by data revisions, missing observations, overlapping indicators, and the use of proxy data for some components.</p>
 
       <h3>Data sources</h3>
       <ul>
