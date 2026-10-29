@@ -1,113 +1,195 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="The UK Panic Index combines economic, financial and confidence indicators to assess UK economic stress relative to historical conditions.">
 <title>UK Panic Index</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --paper: #EDEAE0; --panel: #E2DFD2; --ink: #16231F; --ink-soft: #4A544E;
-    --line: #CFC9B8; --panic: #A6402E; --calm: #2B5D53;
-    box-sizing: border-box;
-    padding-top: env(safe-area-inset-top, 0px);
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-  }
-  * { box-sizing: inherit; }
-  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
-  body { margin: 0; background: var(--paper); color: var(--ink); font-family: 'IBM Plex Sans', sans-serif; line-height: 1.55; }
-  .wrap { max-width: 720px; margin: 0 auto; padding: 64px 24px 96px; }
-  header.masthead { border-bottom: 1px solid var(--line); padding-bottom: 28px; margin-bottom: 40px; }
-  .eyebrow { font-size: 13px; color: var(--ink-soft); margin: 0 0 6px; }
-  h1 { font-family: 'Source Serif 4', serif; font-size: 30px; font-weight: 600; margin: 0; }
-  .reading { padding: 36px 0 44px; border-bottom: 1px solid var(--line); margin-bottom: 36px; }
-  .reading .value { font-family: 'Source Serif 4', serif; font-size: 88px; font-weight: 600; line-height: 1; margin: 0; }
-  .reading .value.panic { color: var(--panic); }
-  .reading .value.calm { color: var(--calm); }
-  .reading .caption { margin-top: 14px; color: var(--ink-soft); font-size: 15px; max-width: 46ch; }
-  section { margin-bottom: 48px; }
-  h2 { font-family: 'Source Serif 4', serif; font-size: 21px; font-weight: 600; margin: 0 0 18px; }
-  p { margin: 0 0 14px; color: var(--ink-soft); }
-  table { width: 100%; border-collapse: collapse; }
-  th, td { text-align: left; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
-  th { font-weight: 500; color: var(--ink-soft); font-size: 13px; }
-  td.score { text-align: right; font-variant-numeric: tabular-nums; }
-  td.score.panic { color: var(--panic); }
-  td.score.calm { color: var(--calm); }
-  tr:last-child td { border-bottom: none; }
-  .pillar-tag { display: inline-block; font-size: 12px; color: var(--ink-soft); margin-left: 8px; }
-  .note { background: var(--panel); border-left: 3px solid var(--line); padding: 14px 18px; font-size: 14px; color: var(--ink-soft); margin-top: 18px; }
-  footer { border-top: 1px solid var(--line); padding-top: 24px; font-size: 13px; color: var(--ink-soft); }
-  footer a { color: var(--ink); }
-  @media (max-width: 480px) { .reading .value { font-size: 64px; } h1 { font-size: 24px; } }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) { --paper: #14201C; --panel: #1C2823; --ink: #E9E6DC; --ink-soft: #9CA69E; --line: #33403A; --panic: #D97A66; --calm: #5EA592; }
-  }
-  :root[data-theme="dark"] { --paper: #14201C; --panel: #1C2823; --ink: #E9E6DC; --ink-soft: #9CA69E; --line: #33403A; --panic: #D97A66; --calm: #5EA592; }
+:root {
+  --ink:#252a30;
+  --muted:#68727d;
+  --line:#dce1e5;
+  --blue:#477db8;
+  --red:#bd4a45;
+  --green:#27816b;
+  --light:#f5f6f7;
+}
+* { box-sizing:border-box; }
+body {
+  margin:0;
+  font:14px/1.55 Arial,Helvetica,sans-serif;
+  color:var(--ink);
+  background:#fff;
+}
+header { background:#303438; color:#fff; }
+.top {
+  max-width:1120px;
+  margin:auto;
+  padding:14px 22px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:20px;
+}
+.brand { font-weight:bold; letter-spacing:.4px; }
+nav { display:flex; gap:20px; flex-wrap:wrap; }
+a { color:inherit; text-decoration:none; }
+a:hover { text-decoration:underline; }
+nav a { color:#e0e3e6; }
+.banner { background:var(--blue); color:#fff; padding:13px 22px; }
+.banner div { max-width:1120px; margin:auto; font-size:20px; font-weight:bold; }
+main { max-width:1120px; margin:auto; padding:28px 22px 44px; }
+h1 { font-size:26px; line-height:1.25; margin:0 0 6px; }
+h2 { font-size:18px; margin:28px 0 12px; padding-bottom:8px; border-bottom:1px solid var(--line); }
+h3 { font-size:14px; margin:20px 0 6px; }
+p { margin:7px 0 12px; }
+.subtitle,.muted { color:var(--muted); }
+.subtitle { margin-bottom:22px; }
+.muted { font-size:12px; }
+.summary {
+  display:grid;
+  grid-template-columns:260px 1fr;
+  border:1px solid var(--line);
+  margin:22px 0 28px;
+}
+.summary > div { padding:19px 21px; }
+.summary > div + div { border-left:1px solid var(--line); }
+.label { font-size:11px; color:var(--muted); font-weight:bold; letter-spacing:.7px; text-transform:uppercase; }
+.score { font-size:40px; font-weight:bold; margin:5px 0; line-height:1.2; }
+.positive { color:var(--red); }
+.negative { color:var(--green); }
+.neutral { color:var(--ink); }
+.columns { display:grid; grid-template-columns:minmax(0,1.4fr) minmax(300px,1fr); gap:30px; align-items:start; }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+th { text-align:left; color:#5d6670; background:var(--light); font-size:12px; font-weight:normal; }
+th,td { padding:10px 8px; border-bottom:1px solid #e8ebee; }
+tr:hover td { background:#fafbfc; }
+.num { text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.bar-track { height:10px; background:#f0f2f4; position:relative; min-width:60px; }
+.bar-track:after { content:""; position:absolute; left:50%; top:-3px; height:16px; border-left:1px solid #8d969f; }
+.bar { position:absolute; top:0; height:10px; }
+.bar.red { background:var(--red); }
+.bar.green { background:var(--green); }
+.formula { background:var(--light); padding:11px 13px; margin:10px 0 13px; overflow-wrap:anywhere; }
+ul { padding-left:20px; }
+li { margin:5px 0; }
+.note { border-top:1px solid var(--line); margin-top:28px; padding-top:14px; color:var(--muted); font-size:12px; }
+footer { border-top:1px solid var(--line); padding:18px 22px; color:var(--muted); font-size:12px; }
+.footer-inner { max-width:1120px; margin:auto; display:flex; justify-content:space-between; gap:15px; }
+footer a { color:var(--blue); }
+@media(max-width:760px) {
+  .top { flex-direction:column; align-items:flex-start; }
+  main { padding:22px 13px 35px; }
+  .summary,.columns { grid-template-columns:1fr; }
+  .summary > div + div { border-left:0; border-top:1px solid var(--line); }
+  .columns { gap:5px; }
+  th,td { padding:8px 5px; }
+  .bar-track { min-width:35px; }
+  .footer-inner { flex-direction:column; }
+}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header class="masthead">
-    <p class="eyebrow">United Kingdom Panic Index — UKPI</p>
-    <h1>A composite read on UK economic stability and confidence</h1>
-  </header>
+<header>
+  <div class="top">
+    <a class="brand" href="#">UK PANIC INDEX</a>
+    <nav>
+      <a href="#readings">Readings</a>
+      <a href="#methodology">Methodology</a>
+      <a href="https://github.com/RaphaelMonti/United-Kingdom-Panic-Index">Source code ↗</a>
+    </nav>
+  </div>
+</header>
 
-  <div class="reading">
-    <p class="value calm">−1.37</p>
-    <p class="caption">
-      Reference month: <strong>2026-06</strong>. A reading of 0 represents the long-run average
-      across all 12 indicators. Positive values indicate more panic than normal; negative values
-      indicate a calmer-than-normal reading. Each 25 points corresponds to roughly one standard
-      deviation of historical variation.
-    </p>
+<div class="banner"><div>United Kingdom — Economic stress indicator</div></div>
+
+<main>
+  <h1>Economic stress and uncertainty</h1>
+  <p class="subtitle">A composite indicator of UK economic conditions relative to their historical behaviour.</p>
+
+  <div class="summary">
+    <div>
+      <div class="label">Latest model reading</div>
+      <div class="score positive">+0.73</div>
+      <div class="muted">Reference month: September 2026</div>
+      <div class="muted">10 components scored</div>
+    </div>
+    <div>
+      <div class="label">Interpretation</div>
+      <p>A positive reading indicates that the weighted indicators, after direction adjustment, are above their historical baselines on balance.</p>
+      <p class="muted">The UKPI is a research indicator. It is not a percentage, recession probability, official statistic or forecast.</p>
+    </div>
   </div>
 
-  <section>
-    <h2>Component readings</h2>
-    <table>
-      <thead><tr><th>Indicator</th><th style="text-align:right">Z-score</th></tr></thead>
-      <tbody>
-        <tr><td>Unemployment rate <span class="pillar-tag">Labour</span></td><td class="score panic">+1.331</td></tr>
-        <tr><td>Crime rate <span class="pillar-tag">Social & Wellbeing</span></td><td class="score panic">+1.000</td></tr>
-        <tr><td>Public sector net debt <span class="pillar-tag">Macro & Fiscal</span></td><td class="score panic">+0.783</td></tr>
-        <tr><td>Job Security Proxy <span class="pillar-tag">Labour</span></td><td class="score panic">+0.488</td></tr>
-        <tr><td>Composite Sentiment <span class="pillar-tag">Confidence</span></td><td class="score panic">+0.180</td></tr>
-        <tr><td>GDP growth <span class="pillar-tag">Macro & Fiscal</span></td><td class="score ">+0.037</td></tr>
-        <tr><td>Bank Rate <span class="pillar-tag">Monetary & Markets</span></td><td class="score calm">−0.285</td></tr>
-        <tr><td>CPI inflation <span class="pillar-tag">Macro & Fiscal</span></td><td class="score calm">−0.318</td></tr>
-        <tr><td>FTSE 100 volatility <span class="pillar-tag">Monetary & Markets</span></td><td class="score calm">−1.000</td></tr>
-        <tr><td>GBP FX volatility <span class="pillar-tag">Monetary & Markets</span></td><td class="score calm">−1.029</td></tr>
-        <tr><td>Wellbeing (ONS4) <span class="pillar-tag">Social & Wellbeing</span></td><td class="score calm">−1.100</td></tr>
-        <tr><td>Real purchasing power <span class="pillar-tag">Social & Wellbeing</span></td><td class="score calm">−1.630</td></tr>
-      </tbody>
-    </table>
-  </section>
+  <div class="columns">
+    <section id="readings">
+      <h2>Component readings</h2>
+      <p class="muted">Scores are direction-adjusted z-scores. Bars are capped visually at ±2.</p>
+      <table>
+        <thead>
+          <tr><th>Indicator</th><th>Relative score</th><th class="num">Value</th><th class="num">Weight</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>CPI inflation</td><td><div class="bar-track"><span class="bar green" style="right:50%;width:14.2%"></span></div></td><td class="num negative">−0.568</td><td class="num">7.69%</td></tr>
+          <tr><td>Public sector net debt</td><td><div class="bar-track"><span class="bar red" style="left:50%;width:10.0%"></span></div></td><td class="num positive">+0.401</td><td class="num">7.69%</td></tr>
+          <tr><td>Bank Rate</td><td><div class="bar-track"><span class="bar red" style="left:50%;width:1.8%"></span></div></td><td class="num positive">+0.073</td><td class="num">7.69%</td></tr>
+          <tr><td>FTSE volatility (ETF proxy)</td><td><div class="bar-track"><span class="bar green" style="right:50%;width:9.0%"></span></div></td><td class="num negative">−0.361</td><td class="num">7.69%</td></tr>
+          <tr><td>GBP exchange-rate volatility</td><td><div class="bar-track"><span class="bar green" style="right:50%;width:19.7%"></span></div></td><td class="num negative">−0.789</td><td class="num">7.69%</td></tr>
+          <tr><td>Unemployment</td><td><div class="bar-track"><span class="bar red" style="left:50%;width:22.1%"></span></div></td><td class="num positive">+0.885</td><td class="num">8.65%</td></tr>
+          <tr><td>Real pay growth</td><td><div class="bar-track"><span class="bar red" style="left:50%;width:9.1%"></span></div></td><td class="num positive">+0.362</td><td class="num">7.69%</td></tr>
+          <tr><td>GDP growth</td><td><div class="bar-track"><span class="bar red" style="left:50%;width:6.0%"></span></div></td><td class="num positive">+0.238</td><td class="num">7.69%</td></tr>
+          <tr><td>Job security composite</td><td><div class="bar-track"><span class="bar red" style="left:50%;width:21.3%"></span></div></td><td class="num positive">+0.851</td><td class="num">8.65%</td></tr>
+          <tr><td>Confidence and uncertainty</td><td><div class="bar-track"><span class="bar green" style="right:50%;width:6.2%"></span></div></td><td class="num negative">−0.248</td><td class="num">28.85%</td></tr>
+        </tbody>
+      </table>
+    </section>
 
-  <section>
-    <h2>Methodology</h2>
-    <p>The UKPI combines 12 indicators across five pillars, each weighted by how directly it reflects economic stability and public confidence.</p>
-    <table>
-      <thead><tr><th>Pillar</th><th style="text-align:right">Weight</th></tr></thead>
-      <tbody>
-        <tr><td>Macro &amp; Fiscal — CPI, GDP growth, public debt</td><td class="score">20%</td></tr>
-        <tr><td>Monetary &amp; Markets — Bank Rate, FTSE volatility, GBP FX volatility</td><td class="score">20%</td></tr>
-        <tr><td>Labour — unemployment, Job Security Proxy</td><td class="score">15%</td></tr>
-        <tr><td>Confidence &amp; Sentiment — CCI, Business Barometer, EPU (blended)</td><td class="score">25%</td></tr>
-        <tr><td>Social &amp; Wellbeing — crime, purchasing power, wellbeing</td><td class="score">20%</td></tr>
-      </tbody>
-    </table>
-    <p style="margin-top:24px"><strong style="color:var(--ink)">Normalization.</strong> Every indicator is z-scored against its own trailing 10-year mean and standard deviation. Series where a higher raw value is beneficial are direction-corrected so a higher final score always means more panic.</p>
-    <p><strong style="color:var(--ink)">Mixed-frequency alignment.</strong> Monthly/daily indicators align to a shared reference month. GDP growth, crime rate, and wellbeing update quarterly at best and always report their own latest available figure instead.</p>
-    <p><strong style="color:var(--ink)">Volatility indicators.</strong> FTSE and GBP FX volatility are derived from daily price data as the standard deviation of daily returns, accumulated monthly over time.</p>
-  </section>
+    <section id="methodology">
+      <h2>Methodology</h2>
 
-  <footer>
-    Last updated 2026-10-15 11:10 &middot;
-    <a href="https://github.com/RaphaelMonti/United-Kingdom-Panic-Index" target="_blank" rel="noopener">Source on GitHub</a>
-  </footer>
-</div>
+      <h3>1. Historical standardisation</h3>
+      <p>Each indicator is compared with its own preceding five-year historical window. The observation being scored is excluded from the baseline.</p>
+      <div class="formula">z = (observation − historical mean) ÷ population standard deviation</div>
+      <p>A score of +1 means one standard deviation above the historical mean; −1 means one below. Insufficient history or a zero standard deviation can prevent a component from being scored.</p>
+
+      <h3>2. Direction adjustment</h3>
+      <p>Indicator directions are adjusted so higher component scores are intended to represent greater economic stress. For example, higher unemployment and volatility increase stress, while stronger GDP growth and real pay growth are inverted. These are modelling assumptions, not universal economic laws.</p>
+
+      <h3>3. Composite indicators</h3>
+      <p><strong>Job security</strong> combines redundancy and vacancy-related measures. <strong>Confidence and uncertainty</strong> combines consumer confidence, the Lloyds Business Barometer and UK Economic Policy Uncertainty. The latter composite requires at least two available inputs.</p>
+
+      <h3>4. Weights and aggregation</h3>
+      <p>Component scores are combined using configured weights. When components are unavailable, weights are renormalised across those that can be scored. The effective weights shown in the table sum to approximately 100%.</p>
+      <div class="formula">UKPI = weighted average of component z-scores × 25</div>
+      <p>The factor of 25 scales the result for presentation. The index is not a percentage or probability, and its magnitude does not directly represent the probability of a particular economic outcome.</p>
+
+      <h3>5. Reporting periods and data lags</h3>
+      <p>The intended live reference month is the last completed calendar month. Some source series are released quarterly or with delays, so an observation may describe an earlier period. Publication date and observation period are not necessarily the same.</p>
+
+      <h3>6. Limitations</h3>
+      <p>The index measures conditions relative to recent historical baselines, not absolute economic health. Results can be affected by data revisions, missing observations, overlapping indicators, proxy choices and component weights. The score should be interpreted alongside the individual readings and source data.</p>
+
+      <h3>Data sources</h3>
+      <ul>
+        <li>Office for National Statistics: inflation, GDP, public debt, labour-market data and earnings.</li>
+        <li>Bank of England: Bank Rate and exchange-rate data.</li>
+        <li>FTSE volatility input: ISF.LON ETF price proxy, not a direct FTSE 100 index series.</li>
+        <li>Federal Reserve Economic Data: UK Economic Policy Uncertainty.</li>
+        <li>GfK and Lloyds Banking Group: consumer confidence and business sentiment.</li>
+      </ul>
+    </section>
+  </div>
+
+  <p class="note">Static snapshot using model values recorded on 29 October 2026. The figures above must be regenerated from the model output whenever the index is updated.</p>
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <span>UK Panic Index · Independent research project</span>
+    <a href="https://github.com/RaphaelMonti/United-Kingdom-Panic-Index">View source code on GitHub ↗</a>
+  </div>
+</footer>
 </body>
 </html>
